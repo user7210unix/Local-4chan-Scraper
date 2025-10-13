@@ -1,4 +1,13 @@
+<div align="center">
+
 # 🗂️ Local 4chan Scraper
+
+<!-- WIP badge (top, centered) -->
+<p align="center">
+  <img src="https://img.shields.io/badge/🚧%20work%20in%20progress-orange?style=for-the-badge&labelColor=1f2937">
+</p>
+
+<div align="left">
 
 A self-hosted localhost web application for browsing 4chan boards with local caching, greentext detection, image previews, and reply hover functionality.
 
