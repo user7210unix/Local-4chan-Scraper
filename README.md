@@ -1,95 +1,143 @@
-<div align="center">
+<div align="left">
 
 # 🗂️ Local 4chan Scraper
 
 <!-- WIP badge (top, centered) -->
-<p align="center">
+<p align="left">
   <img src="https://img.shields.io/badge/🚧%20work%20in%20progress-orange?style=for-the-badge&labelColor=1f2937">
 </p>
 
 <div align="left">
 
-A self-hosted localhost web application for browsing 4chan boards with local caching, greentext detection, image previews, and reply hover functionality.
+A fast, efficient, and stable 4chan browser with smart caching.
 
-## ✨ Features
+## Features
 
-- **📋 Board Browsing**: View all available 4chan boards
-- **🧵 Thread Listing**: Browse threads with reply/image counts
-- **💬 Post Display**: Read posts with proper formatting
-- **🟢 Greentext Detection**: Automatic highlighting of greentext (lines starting with `>`)
-- **🔗 Reply Links**: Clickable `>>123456` links with hover previews
-- **🖼️ Image Previews**: Hover over thumbnails to see larger previews
-- **💾 Smart Caching**: SQLite database + file caching for fast loading
-- **🌙 Dark Mode**: Easy-on-the-eyes dark interface
-- **🔄 Auto-refresh**: Configurable cache expiration
+- **Smart Caching**: Only thumbnails are cached by default - full images loaded on-demand
+- **No Bloat**: Temporary cache auto-cleans, no permanent storage bloat
+- **Thread Filtering**: Hide threads by keyword per board
+- **History Tracking**: Recent threads in sidebar
+- **Optional Downloads**: Enable download button in settings if needed
+- **Fast & Stable**: Rate-limited API requests, retry logic, LRU cache cleanup
 
-## 📁 Project Structure
+## Installation
 
-```
-4chan-scraper/
-├── app.py                 # Main Flask application
-├── requirements.txt       # Python dependencies
-├── .env                   # Configuration file
-├── templates/
-│   └── index.html        # Frontend template
-└── data/                 # Auto-created
-    ├── chan.db           # SQLite database
-    └── images/           # Cached images
-        ├── g/
-        ├── pol/
-        └── ...
-```
-
-## 🚀 Installation
-
-### Prerequisites
-- Python 3.8+
-- pip
-
-### Setup Steps
-
-1. **Clone or create the project directory**:
-```bash
-mkdir 4chan-scraper
-cd 4chan-scraper
-```
-
-2. **Create the files**:
-   - Copy `app.py` to the root directory
-   - Create `templates/` folder and add `index.html`
-   - Create `requirements.txt`
-   - Create `.env` configuration file
-
-3. **Install dependencies**:
+1. Clone the repository
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Configure settings** (optional):
-   Edit `.env` to customize:
-   - `CACHE_TIME`: Cache duration in minutes (default: 10)
-   - `BOARDS`: Default boards to display (default: g,pol,v,a)
-
-5. **Run the application**:
+3. Run the application:
 ```bash
 python app.py
 ```
 
-6. **Open your browser**:
-   Navigate to `http://localhost:5000`
+4. Open browser to `http://127.0.0.1:5000`
 
-## 🎮 Usage
+## Project Structure
 
-### Basic Flow
-1. **Select a board** from the grid (e.g., `/g/` - Technology)
-2. **Browse threads** - see thread subjects, reply counts, and image counts
-3. **Click a thread** to view all posts
-4. **Interact with posts**:
-   - Hover over `>>123456` links to preview quoted posts
-   - Hover over image thumbnails to see larger previews
-   - Click images to open full size
-   - Greentext is automatically highlighted in green
+```
+4chan-scraper/
+├── app.py                  # Main Flask application
+├── requirements.txt        # Python dependencies
+├── .env                    # Environment variables (optional)
+├── utils/
+│   ├── config.py          # Configuration management
+│   ├── database.py        # SQLite cache manager
+│   ├── cache_manager.py   # Image cache manager
+│   ├── api_client.py      # 4chan API client
+│   ├── settings_manager.py # User settings
+│   ├── history_manager.py  # Browsing history
+│   └── filter_manager.py   # Thread filters
+├── templates/
+│   └── index.html         # Frontend UI
+└── data/
+    ├── cache/             # Temporary image cache (auto-cleanup)
+    │   ├── thumbs/        # Thumbnail cache
+    │   └── temp/          # On-demand full images
+    ├── downloads/         # User downloads (optional)
+    ├── chan.db            # SQLite database
+    ├── settings.json      # User settings
+    ├── history.json       # Browsing history
+    └── filters.json       # Thread filters
+```
 
-### Navigation
-- Use the **← Back** button to return to the previous view
-- Use **🔄 Refresh Cache**
+## Configuration
+
+Optional environment variables in `.env`:
+
+```
+CACHE_TIME=10          # Cache TTL in minutes
+MAX_CACHE_SIZE=500     # Max cache size in MB
+HOST=127.0.0.1
+PORT=5000
+DEBUG=False
+```
+
+## How It Works
+
+### Smart Caching System
+
+1. **Thumbnails**: Automatically cached when browsing catalogs
+2. **Full Images**: Only loaded on-demand when clicked, stored in temp cache
+3. **LRU Cleanup**: Least recently used files removed when cache limit reached
+4. **Auto Expiry**: Old cache files auto-deleted after 24 hours
+5. **No Bloat**: User doesn't accumulate unused files
+
+### Download vs Cache
+
+- **Cache**: Temporary, auto-managed, for browsing only
+- **Downloads**: Permanent, user-initiated, stored separately (optional)
+
+## Usage
+
+### Browse Boards
+- Click any board from the grid to view its catalog
+
+### Thread Filtering
+1. Open a board catalog
+2. Click "Filters" in sidebar
+3. Add keywords to hide threads containing that text
+4. Filters are per-board and persistent
+
+### Settings
+- **Theme**: Light or dark mode
+- **Download Button**: Enable to show download buttons on images
+- **Show Sticky**: Toggle sticky thread visibility
+- **Image Hover**: Enable hover previews (future)
+
+### History
+- Recently viewed threads appear in sidebar
+- Click to quickly return to a thread
+- Clear all history with "Clear" button
+
+## Performance
+
+- Smart rate limiting (1 req/sec to 4chan API)
+- Automatic retry on failed requests
+- Threaded background thumbnail downloads
+- Efficient SQLite caching for API responses
+- LRU cleanup prevents disk bloat
+
+## Troubleshooting
+
+**Images not loading?**
+- Check your internet connection
+- 4chan CDN might be slow - wait a few seconds
+
+**Cache too large?**
+- Reduce `MAX_CACHE_SIZE` in .env
+- Click "Settings" → "Clear Cache"
+
+**API errors?**
+- Rate limiting active - wait a few seconds
+- 4chan API might be down temporarily
+
+## License
+
+MIT License - Free to use and modify
+
+## Credits
+
+Built for efficient, local 4chan browsing without bloat.
