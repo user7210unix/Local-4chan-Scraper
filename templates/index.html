@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4chan Local Scraper</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #eef2ff; --panel: #d9e1f2; --panel-dark: #c5d1e8;
+            --border: #9ca3af; --text: #0c0e13; --text-muted: #6b7280;
+            --link: #0057b8; --link-hover: #003d82; --greentext: #789922;
+            --highlight: #fef3c7;
+        }
+        
+        [data-theme="dark"] {
+            --bg: #1a1a1b; --panel: #272729; --panel-dark: #1a1a1b;
+            --border: #343536; --text: #d7dadc; --text-muted: #818384;
+            --link: #4fbcff; --link-hover: #7eccff; --highlight: #3a3a3b;
+        }
+        
+        body {
+            font-family: Arial, sans-serif; font-size: 13px;
+            background: var(--bg); color: var(--text); line-height: 1.4;
+        }
+        
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: 250px; height: 100vh;
+            background: var(--panel); border-right: 1px solid var(--border);
+            overflow-y: auto; transition: transform 0.2s; z-index: 100;
+        }
+        .sidebar.collapsed { transform: translateX(-100%); }
+        
+        .sidebar-header {
+            padding: 12px; background: var(--panel-dark);
+            border-bottom: 1px solid var(--border); position: sticky; top: 0;
+        }
+        .sidebar-title { font-weight: bold; margin-bottom: 8px; }
+        .sidebar-actions { display: flex; gap: 4px; }
+        .sidebar-actions button { flex: 1; padding: 4px; font-size: 11px; }
+        
+        .sidebar-section {
+            padding: 12px; border-bottom: 1px solid var(--border);
+        }
+        .section-title {
+            font-weight: bold; font-size: 11px; color: var(--text-muted);
+            text-transform: uppercase; margin-bottom: 8px;
+        }
+        
+        .history-item, .board-item {
+            padding: 6px; margin-bottom: 4px; background: var(--bg);
+            border: 1px solid var(--border); cursor: pointer; font-size: 11px;
+        }
+        .history-item:hover, .board-item:hover { background: var(--highlight); }
+        .board-tag { color: var(--link); font-weight: bold; }
+        
+        .main-content {
+            margin-left: 250px; transition: margin-left 0.2s; min-height: 100vh;
+        }
+        .main-content.expanded { margin-left: 0; }
+        
+        .sidebar-toggle {
+            position: fixed; left: 8px; top: 8px; z-index: 101;
+            padding: 4px 8px; background: var(--panel);
+            border: 1px solid var(--border); cursor: pointer;
+        }
+        
+        header {
+            background: var(--panel-dark); padding: 12px;
+            border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 50;
+        }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .subtitle { font-size: 11px; color: var(--text-muted); }
+        .nav { display: flex; gap: 4px; margin-top: 8px; }
+        
+        button, .btn {
+            padding: 4px 8px; background: var(--panel);
+            border: 1px solid var(--border); color: var(--text);
+            cursor: pointer; font-size: 12px;
+        }
+        button:hover, .btn:hover { background: var(--highlight); }
+        
+        .container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+        .container.wide { max-width: 1400px; }
+        
+        .boards-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px; margin-top: 16px;
+        }
+        .board-card {
+            background: var(--panel); padding: 16px; border: 1px solid var(--border);
+            cursor: pointer; text-align: center;
+        }
+        .board-card:hover { background: var(--highlight); }
+        .board-name { font-size: 20px; font-weight: bold; color: var(--link); margin-bottom: 4px; }
+        
+        .threads-list { margin-top: 16px; max-width: 100%; }
+        .thread-item {
+    		background: var(--panel); padding: 12px; margin-bottom: 8px;
+    		border: 1px solid var(--border); border-left: 3px solid var(--panel-dark);
+    		cursor: pointer; display: flex; gap: 12px; align-items: flex-start; width: 100%;
+	}
+        .thread-item:hover { background: var(--highlight); }
+        .thread-item.sticky { border-left-color: #dc2626; background: var(--panel-dark); }
+        
+        .thread-thumb {
+            width: 100px; height: 100px; flex-shrink: 0;
+            background: var(--bg); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .thread-thumb img { max-width: 100%; max-height: 100%; }
+	.thread-details { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .thread-info { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+        .thread-subject { font-weight: bold; margin-bottom: 4px; }
+        .thread-preview { font-size: 12px; color: var(--text-muted); }
+        
+        .post {
+            background: var(--panel); padding: 8px; margin-bottom: 8px;
+            border: 1px solid var(--border); border-left: 3px solid var(--panel-dark);
+        }
+        .post.op { border-left-color: var(--link); }
+        .post-header {
+    		font-size: 11px; color: var(--text-muted); margin-bottom: 8px;
+    		padding-bottom: 4px; border-bottom: 1px solid var(--border);
+    		display: flex; justify-content: space-between; align-items: center;
+	}
+        .post-author { font-weight: bold; color: var(--text); }
+        .post-number { color: var(--link); text-decoration: none; cursor: pointer; }
+        .post-number:hover { text-decoration: underline; }
+        .post-content { word-wrap: break-word; text-align: left; }
+        .greentext { color: var(--greentext); }
+        .post-link { color: var(--link); text-decoration: underline; cursor: pointer; }
+        .post-image { margin: 8px 0; }
+        .post-image img {
+            max-width: 200px; border: 1px solid var(--border); cursor: pointer;
+        }
+        
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); z-index: 200;
+        }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content {
+            background: var(--panel); border: 2px solid var(--border); padding: 16px;
+            max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+        }
+        .modal-title { font-size: 16px; font-weight: bold; }
+        .close-btn { font-size: 20px; cursor: pointer; border: none; background: none; }
+        
+        .settings-group { margin-bottom: 16px; }
+        .settings-label { display: block; margin-bottom: 4px; font-weight: bold; }
+        .settings-input, .settings-select {
+            width: 100%; padding: 4px; background: var(--bg);
+            border: 1px solid var(--border); color: var(--text);
+        }
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        
+        .filter-item {
+            background: var(--bg); padding: 8px; margin-bottom: 8px;
+            border: 1px solid var(--border); display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .filter-keyword { font-weight: bold; }
+        
+        .loading { text-align: center; padding: 40px; color: var(--text-muted); }
+        .hidden { display: none !important; }
+        .error {
+            background: #fee; color: #c00; padding: 8px;
+            border: 1px solid #c00; margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">4chan Browser</div>
+            <div class="sidebar-actions">
+                <button onclick="openSettings()">Settings</button>
+                <button onclick="openFilters()">Filters</button>
+                <button onclick="clearHistory()">Clear</button>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">Recent Threads</div>
+            <div id="historyList">
+                <div style="color: var(--text-muted); font-size: 11px;">No history</div>
+            </div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">Quick Boards</div>
+            <div id="quickBoards"></div>
+        </div>
+        
+        <div class="sidebar-section">
+            <div class="section-title">Cache Info</div>
+            <div id="cacheInfo" style="font-size: 11px; color: var(--text-muted);">Loading...</div>
+        </div>
+    </div>
+    
+    <div class="main-content" id="mainContent">
+        <header>
+            <h1>4chan Local Scraper</h1>
+            <p class="subtitle">Browse boards with local caching</p>
+            <div class="nav">
+                <button class="hidden" id="backBtn" onclick="goBack()">← Back</button>
+                <button onclick="refreshView()">Refresh</button>
+                <button onclick="openSettings()">Settings</button>
+            </div>
+        </header>
+        
+        <div class="container" id="mainContainer">
+            <div id="content" class="loading">Loading...</div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+            <div class="settings-group">
+                <label class="settings-label">Theme</label>
+                <select class="settings-select" id="themeSelect">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="downloadBtn">
+                    <label>Enable download button</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showSticky">
+                    <label>Show sticky threads</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="imageHover">
+                    <label>Image hover preview</label>
+                </div>
+            </div>
+            <button onclick="saveSettings()">Save Settings</button>
+        </div>
+    </div>
+    
+    <!-- Filters Modal -->
+    <div class="modal" id="filtersModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Thread Filters</div>
+                <button class="close-btn" onclick="closeFilters()">×</button>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <input type="text" id="filterKeyword" placeholder="Enter keyword to hide..." 
+                       style="width: 70%; padding: 4px; margin-right: 4px;">
+                <button onclick="addFilter()">Add Filter</button>
+            </div>
+            <div id="filterList"></div>
+        </div>
+    </div>
+    
+    <script>
+        // State management
+        let state = {
+            view: 'boards',
+            currentBoard: null,
+            currentThread: null,
+            settings: {},
+            history: [],
+            filters: {}
+        };
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadHistory();
+            loadCacheStats();
+            showBoards();
+        });
+        
+        // API calls
+        async function apiCall(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) throw new Error('Request failed');
+                return await response.json();
+            } catch (error) {
+                console.error('API error:', error);
+                return null;
+            }
+        }
+        
+        // View: Boards list
+        async function showBoards() {
+            state.view = 'boards';
+            state.currentBoard = null;
+            state.currentThread = null;
+            document.getElementById('backBtn').classList.add('hidden');
+            
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="loading">Loading boards...</div>';
+            
+            const boards = await apiCall('/api/boards');
+            if (!boards || boards.length === 0) {
+                content.innerHTML = '<div class="error">Failed to load boards</div>';
+                return;
+            }
+            
+            let html = '<div class="boards-grid">';
+            boards.forEach(board => {
+                html += `
+                    <div class="board-card" onclick="showCatalog('${board.board}')">
+                        <div class="board-name">/${board.board}/</div>
+                        <div>${board.title || board.board}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+            
+            updateQuickBoards(boards);
+        }
+        
+        // View: Catalog
+        async function showCatalog(board) {
+            state.view = 'catalog';
+            state.currentBoard = board;
+            state.currentThread = null;
+            document.getElementById('backBtn').classList.remove('hidden');
+            
+            const content = document.getElementById('content');
+            content.innerHTML = `<div class="loading">Loading /${board}/ catalog...</div>`;
+            
+            const threads = await apiCall(`/api/catalog/${board}`);
+            if (!threads) {
+                content.innerHTML = '<div class="error">Failed to load catalog</div>';
+                return;
+            }
+            
+            let html = '<div class="threads-list">';
+            threads.forEach(thread => {
+                const subject = thread.sub || 'No Subject';
+                const comment = stripHtml(thread.com || '').substring(0, 150);
+                const sticky = thread.sticky ? 'sticky' : '';
+                const tim = thread.tim || null;
+                
+                html += `
+                    <div class="thread-item ${sticky}" onclick="showThread('${board}', ${thread.no})">
+                        <div class="thread-thumb">
+                            ${tim ? `<img src="/api/image/${board}/${tim}s.jpg" alt="thumb">` : 'No image'}
+                        </div>
+                        <div class="thread-details">
+                            <div class="thread-info">
+                                ${thread.replies || 0} replies • ${thread.images || 0} images
+                                ${thread.sticky ? ' • STICKY' : ''}
+                            </div>
+                            <div class="thread-subject">${subject}</div>
+                            <div class="thread-preview">${comment}...</div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            content.innerHTML = html;
+        }
+        
+        // View: Thread
+        async function showThread(board, threadId) {
+            state.view = 'thread';
+            state.currentBoard = board;
+            state.currentThread = threadId;
+            document.getElementById('backBtn').classList.remove('hidden');
+            
+            const content = document.getElementById('content');
+            content.innerHTML = `<div class="loading">Loading thread...</div>`;
+            
+            const data = await apiCall(`/api/thread/${board}/${threadId}`);
+            if (!data || !data.posts) {
+                content.innerHTML = '<div class="error">Thread not found</div>';
+                return;
+            }
+            
+            const posts = data.posts;
+            let html = '';
+            
+            posts.forEach((post, index) => {
+                const isOp = index === 0;
+                const subject = post.sub || '';
+                const name = post.name || 'Anonymous';
+                const comment = formatComment(post.com || '');
+                const hasImage = post.tim && post.ext;
+                
+                html += `
+                    <div class="post ${isOp ? 'op' : ''}">
+                        <div class="post-header">
+                            <span class="post-author">${name}</span>
+                            <span class="post-number" onclick="quotePost(${post.no})">#${post.no}</span>
+                            ${subject ? `<span style="font-weight:bold;"> - ${subject}</span>` : ''}
+                        </div>
+                        ${hasImage ? renderImage(board, post) : ''}
+                        <div class="post-content">${comment}</div>
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = html;
+            loadHistory();
+        }
+        
+        // Render image
+        function renderImage(board, post) {
+            const thumb = `/api/image/${board}/${post.tim}s.jpg`;
+            const full = `/api/image/${board}/${post.tim}${post.ext}`;
+            const download = `/api/download/${board}/${post.tim}${post.ext}`;
+            const downloadBtn = state.settings.enableDownloadButton ? 
+                `<button onclick="window.open('${download}')">Download</button>` : '';
+            
+            return `
+                <div class="post-image">
+                    <img src="${thumb}" onclick="window.open('${full}')" alt="image">
+                    ${downloadBtn}
+                </div>
+            `;
+        }
+        
+        // Format comment text
+        function formatComment(html) {
+            if (!html) return '';
+            
+            // Convert <br> to newlines
+            html = html.replace(/<br\s*\/?>/gi, '\n');
+            
+            // Convert greentext
+            html = html.replace(/^&gt;(.*)$/gm, '<span class="greentext">&gt;$1</span>');
+            
+            // Convert quote links
+            html = html.replace(/&gt;&gt;(\d+)/g, 
+                '<span class="post-link" onclick="scrollToPost($1)">&gt;&gt;$1</span>');
+            
+            return html;
+        }
+        
+        // Navigation
+        function goBack() {
+            if (state.view === 'thread') {
+                showCatalog(state.currentBoard);
+            } else if (state.view === 'catalog') {
+                showBoards();
+            }
+        }
+        
+        function refreshView() {
+            if (state.view === 'boards') {
+                showBoards();
+            } else if (state.view === 'catalog') {
+                showCatalog(state.currentBoard);
+            } else if (state.view === 'thread') {
+                showThread(state.currentBoard, state.currentThread);
+            }
+        }
+        
+        // Settings
+        async function loadSettings() {
+            state.settings = await apiCall('/api/settings') || {};
+            applyTheme(state.settings.theme || 'dark');
+        }
+        
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('active');
+            document.getElementById('themeSelect').value = state.settings.theme || 'dark';
+            document.getElementById('downloadBtn').checked = state.settings.enableDownloadButton || false;
+            document.getElementById('showSticky').checked = state.settings.showStickyThreads !== false;
+            document.getElementById('imageHover').checked = state.settings.imageHoverPreview !== false;
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+        
+        async function saveSettings() {
+            const settings = {
+                theme: document.getElementById('themeSelect').value,
+                enableDownloadButton: document.getElementById('downloadBtn').checked,
+                showStickyThreads: document.getElementById('showSticky').checked,
+                imageHoverPreview: document.getElementById('imageHover').checked
+            };
+            
+            await fetch('/api/settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(settings)
+            });
+            
+            state.settings = settings;
+            applyTheme(settings.theme);
+            closeSettings();
+        }
+        
+        function applyTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+        }
+        
+        // History
+        async function loadHistory() {
+            state.history = await apiCall('/api/history') || [];
+            updateHistoryList();
+        }
+        
+        function updateHistoryList() {
+            const list = document.getElementById('historyList');
+            if (state.history.length === 0) {
+                list.innerHTML = '<div style="color: var(--text-muted); font-size: 11px;">No history</div>';
+                return;
+            }
+            
+            let html = '';
+            state.history.slice(0, 10).forEach(h => {
+                html += `
+                    <div class="history-item" onclick="showThread('${h.board}', ${h.thread_id})">
+                        <span class="board-tag">/${h.board}/</span> ${h.title}
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+        
+        async function clearHistory() {
+            if (confirm('Clear browsing history?')) {
+                await fetch('/api/history/clear', {method: 'POST'});
+                loadHistory();
+            }
+        }
+        
+        // Filters
+        function openFilters() {
+            if (!state.currentBoard) {
+                alert('Open a board first to manage filters');
+                return;
+            }
+            document.getElementById('filtersModal').classList.add('active');
+            loadFilters();
+        }
+        
+        function closeFilters() {
+            document.getElementById('filtersModal').classList.remove('active');
+        }
+        
+        async function loadFilters() {
+            const filters = await apiCall(`/api/filters/${state.currentBoard}`) || [];
+            const list = document.getElementById('filterList');
+            
+            if (filters.length === 0) {
+                list.innerHTML = '<div style="color: var(--text-muted);">No filters for this board</div>';
+                return;
+            }
+            
+            let html = '';
+            filters.forEach(f => {
+                html += `
+                    <div class="filter-item">
+                        <span class="filter-keyword">${f.keyword}</span>
+                        <button onclick="removeFilter(${f.id})">Remove</button>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+        
+        async function addFilter() {
+            const keyword = document.getElementById('filterKeyword').value.trim();
+            if (!keyword) return;
+            
+            await fetch(`/api/filters/${state.currentBoard}`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({keyword, enabled: true})
+            });
+            
+            document.getElementById('filterKeyword').value = '';
+            loadFilters();
+        }
+        
+        async function removeFilter(id) {
+            await fetch(`/api/filters/${state.currentBoard}`, {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id})
+            });
+            loadFilters();
+        }
+        
+        // Quick boards
+        function updateQuickBoards(boards) {
+            const container = document.getElementById('quickBoards');
+            const quick = state.settings.quickBoards || ['g', 'pol', 'v', 'tv', 'b'];
+            
+            let html = '';
+            quick.forEach(b => {
+                html += `<div class="board-item" onclick="showCatalog('${b}')">/${b}/</div>`;
+            });
+            container.innerHTML = html;
+        }
+        
+        // Cache stats
+        async function loadCacheStats() {
+            const stats = await apiCall('/api/cache/stats');
+            if (!stats) return;
+            
+            const info = document.getElementById('cacheInfo');
+            info.innerHTML = `
+                Size: ${stats.cache.total_size_mb}MB / ${stats.cache_size_mb}MB<br>
+                Thumbs: ${stats.cache.thumbnails}<br>
+                Temp: ${stats.cache.temp_images}<br>
+                Threads cached: ${stats.database.threads}
+            `;
+        }
+        
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const main = document.getElementById('mainContent');
+            sidebar.classList.toggle('collapsed');
+            main.classList.toggle('expanded');
+        }
+        
+        // Utilities
+        function stripHtml(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div.textContent || div.innerText || '';
+        }
+        
+        function quotePost(no) {
+            console.log('Quote:', no);
+        }
+        
+        function scrollToPost(no) {
+            console.log('Scroll to:', no);
+        }
+        
+        // Refresh cache stats periodically
+        setInterval(loadCacheStats, 30000);
+    </script>
+</body>
+</html>
