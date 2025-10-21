@@ -86,9 +86,9 @@ DEBUG=False
 5. **No Bloat**: User doesn't accumulate unused files
 
 ### Todo
-- **Improve Wide ui (images are still centered)**
-- **Add favorite boards to the sidepanel (currently only hardcoded for testing purposes)**
-
+- [ ] Improve Wide ui (images are still centered)
+- [ ] Add favorite boards to the sidepanel (currently only hardcoded for testing purposes)
+ 
 ### Download vs Cache
 
 - **Cache**: Temporary, auto-managed, for browsing only
