@@ -85,6 +85,10 @@ DEBUG=False
 4. **Auto Expiry**: Old cache files auto-deleted after 24 hours
 5. **No Bloat**: User doesn't accumulate unused files
 
+### Todo
+- **Improve Wide ui (images are still centered)**
+- **Add favorite boards to the sidepanel (currently only hardcoded for testing purposes)**
+
 ### Download vs Cache
 
 - **Cache**: Temporary, auto-managed, for browsing only
@@ -137,7 +141,3 @@ DEBUG=False
 ## License
 
 MIT License - Free to use and modify
-
-## Credits
-
-Built for efficient, local 4chan browsing without bloat.
