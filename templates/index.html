@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4chan Local Scraper</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body data-theme="dark">
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">4chan Browser</div>
+            <div class="sidebar-actions">
+                <button onclick="openSettings()">Settings</button>
+                <button onclick="openFilters()">Filters</button>
+                <button onclick="clearHistory()">Clear</button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="section-title">Recent Threads</div>
+            <div id="historyList">
+                <div style="color: var(--text-muted); font-size: 11px;">No history</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="section-title">Quick Boards</div>
+            <div id="quickBoards"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="section-title">Cache Info</div>
+            <div id="cacheInfo" style="font-size: 11px; color: var(--text-muted);">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <header>
+            <h1>4chan Local Scraper</h1>
+            <p class="subtitle">Browse boards with local caching</p>
+            <div class="nav">
+                <button class="hidden" id="backBtn" onclick="goBack()">← Back</button>
+                <button onclick="refreshView()">Refresh</button>
+                <button onclick="openSettings()">Settings</button>
+            </div>
+        </header>
+
+        <div class="container" id="mainContainer">
+            <!-- Boards View -->
+            <div id="boardsView">
+                <h2>Boards</h2>
+                <div class="loading">Loading boards...</div>
+                <div class="boards-grid" id="boardsList"></div>
+            </div>
+
+            <!-- Threads View -->
+            <div id="threadsView" class="hidden">
+                <h2 id="boardTitle"></h2>
+                <div class="loading">Loading threads...</div>
+                <div class="threads-list" id="threadsList"></div>
+            </div>
+
+            <!-- Thread View -->
+            <div id="threadView" class="hidden">
+                <h2 id="threadTitle"></h2>
+                <div class="loading">Loading posts...</div>
+                <div id="postsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mascot -->
+    <img id="mascot" class="mascot hidden" alt="Mascot">
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Settings</div>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Theme</label>
+                <select class="settings-select" id="themeSelect" onchange="changeTheme()">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Layout Width</label>
+                <select class="settings-select" id="layoutSelect" onchange="changeLayout()">
+                    <option value="normal">Normal (900px)</option>
+                    <option value="wide">Wide (1200px)</option>
+                </select>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Display Options</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showUsernames" checked>
+                    <label for="showUsernames">Show Usernames</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableImageHover" checked>
+                    <label for="enableImageHover">Image Hover Preview</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableReplyHover" checked>
+                    <label for="enableReplyHover">Reply Hover Preview</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableTreeView">
+                    <label for="enableTreeView">Tree View (Nested Replies)</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableDownloadButton">
+                    <label for="enableDownloadButton">Show Download Button</label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Auto-refresh</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+                    <label for="autoRefresh">Enable Auto-refresh</label>
+                </div>
+                <input type="number" class="settings-input" id="refreshInterval" value="60" min="30" max="300" placeholder="Interval (seconds)">
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Sidebar</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="sidebarAutoHide" checked>
+                    <label for="sidebarAutoHide">Auto-hide Sidebar</label>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Mascot</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="enableMascot" onchange="toggleMascot()">
+                    <label for="enableMascot">Show Mascot</label>
+                </div>
+                <label class="settings-label">Mascot Image URL</label>
+                <input type="text" class="settings-input" id="mascotUrl" placeholder="https://example.com/mascot.png">
+                <label class="settings-label" style="margin-top: 8px;">Opacity</label>
+                <div class="slider-container">
+                    <input type="range" class="slider" id="mascotOpacity" min="0" max="100" value="50" oninput="updateMascotOpacity(this.value)">
+                    <span class="slider-value" id="mascotOpacityValue">50%</span>
+                </div>
+            </div>
+
+            <button class="btn" onclick="saveSettings()" style="width: 100%;">Save Settings</button>
+        </div>
+    </div>
+
+    <!-- Filters Modal -->
+    <div class="modal" id="filtersModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Thread Filters</div>
+                <button class="close-btn" onclick="closeFilters()">&times;</button>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Current Board</label>
+                <div id="currentFilterBoard" style="font-weight: bold;">Select a board first</div>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Add New Filter</label>
+                <input type="text" class="settings-input" id="newFilterKeyword" placeholder="Keyword to filter">
+                <label class="settings-label" style="margin-top: 8px;">Filter Type</label>
+                <select class="settings-select" id="newFilterType">
+                    <option value="subject">Subject Only</option>
+                    <option value="comment">Comment Only</option>
+                    <option value="both">Subject & Comment</option>
+                </select>
+                <div class="checkbox-group" style="margin-top: 8px;">
+                    <input type="checkbox" id="newFilterCaseSensitive">
+                    <label for="newFilterCaseSensitive">Case Sensitive</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="newFilterRegex">
+                    <label for="newFilterRegex">Use Regex</label>
+                </div>
+                <button class="btn" onclick="addFilter()" style="margin-top: 8px; width: 100%;">Add Filter</button>
+            </div>
+
+            <div class="settings-group">
+                <label class="settings-label">Active Filters</label>
+                <div id="filtersList">
+                    <div style="color: var(--text-muted); font-size: 11px;">No filters</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
