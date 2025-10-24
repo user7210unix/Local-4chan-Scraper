@@ -20,6 +20,33 @@ A fast, efficient, and stable 4chan browser with smart caching.
 - **Optional Downloads**: Enable download button in settings if needed
 - **Fast & Stable**: Rate-limited API requests, retry logic, LRU cache cleanup
 
+## 🖼️ Preview
+
+<details>
+<summary>View Screenshots</summary>
+
+
+### Thread (Light Mode)
+<img src="Previews/lightmode-thread.png" align="center" alt="Thread Light Mode Preview" width="600" style="display: block; margin: 32px auto; border: 2px solid #555; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);">
+
+
+### All Boards
+<img src="Previews/all-boards.png" align="center" alt="All Boards Preview" width="600" style="display: block; margin: 32px auto; border: 2px solid #555; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);">
+
+### Board Catalog
+<img src="Previews/board.png" align="center" alt="Board Catalog Preview" width="600" style="display: block; margin: 32px auto; border: 2px solid #555; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);">
+
+### Filter Interface
+<img src="Previews/filter.png" align="center" alt="Filter Interface Preview" width="600" style="display: block; margin: 32px auto; border: 2px solid #555; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);">
+
+### Settings
+<img src="Previews/settings.png" align="center" alt="Settings Panel Preview" width="600" style="display: block; margin: 32px auto; border: 2px solid #555; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);">
+
+### Sidebar
+<img src="Previews/sidebar.png" align="center" alt="Sidebar Preview" width="200" style="display: block; margin: 32px auto; border: 2px solid #555; border-radius: 12px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);">
+
+</details>
+
 ## Installation
 
 1. Clone the repository
