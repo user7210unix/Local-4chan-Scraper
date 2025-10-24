@@ -57,7 +57,7 @@ pip install -r requirements.txt
 
 3. Run the application:
 ```bash
-python app.py
+python3 app.py
 ```
 
 4. Open browser to `http://127.0.0.1:5000`
@@ -113,7 +113,7 @@ DEBUG=False
 5. **No Bloat**: User doesn't accumulate unused files
 
 ### Todo
-- [ ] Improve Wide ui (images are still centered)
+- [x] Improve Wide ui (images are still centered)
 - [ ] Add favorite boards to the sidepanel (currently only hardcoded for testing purposes)
  
 ### Download vs Cache
